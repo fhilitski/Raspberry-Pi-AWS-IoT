@@ -10,7 +10,7 @@ def tmp102_reading(byte0, word0):
 	
 	# !!! not tested for negative temperatures !!!!
 	#last 4 bits of the word0
-	l4b = (t_word & 0b1111000000000000)>>12
+	l4b = (word0 & 0b1111000000000000)>>12
 	temperature = ((byte0<<4) | l4b) * 0.0625
 	return temperature
 	
