@@ -21,6 +21,7 @@ import AWSIoTPythonSDK
 sys.path.insert(0, os.path.dirname(AWSIoTPythonSDK.__file__))
 # Now the import statement should work
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
+
 #old imports
 #from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 #import sys
@@ -30,25 +31,24 @@ import time
 import getopt
 import datetime
 #--------------------
-#For TMP 102 sensor
+#for I2C bus
 import pigpio
-def tmp102_reading(byte0, word0):
-	#calculation of the temperature based on 
-	#the first word and the first byte
-	
-	# !!! not tested for negative temperatures !!!!
-	#last 4 bits of the word0
-	l4b = (t_word & 0b1111000000000000)>>12
-	temperature = ((byte0<<4) | l4b) * 0.0625
-	return temperature
 
+import tmp_sensors
+	
 #i2c bus of the Raspberry Pi 3
 i2c_bus = 1
 #TMP 102 address on the i2c bus
 addr = 0x48
+#TMP 006 address
+addr = 0x40
+
 dev_pi = pigpio.pi()
 dev_tmp = dev_pi.i2c_open(i2c_bus, addr, 0)
+#for TMP 102 read from register 0x0
 register_n = 0
+#for TMP 006 register is 0x1
+register_n = 1
 #--------------
 
 # Custom MQTT message callback
@@ -170,16 +170,15 @@ myAWSIoTMQTTClient.connect()
 # Publish to the topic in a loop
 loopCount = 0
 command_str = ''
-delay_s = 60
-sensor_sn = '00000001'
-topic = 'myrpi/'+sensor_sn
+topic = "myrpi/livingroom"
+delay_s = 300
+sensor_sn = 'dev_r00000002'
 
 try:
 	while True:
 		loopCount += 1
-		t_byte = dev_pi.i2c_read_byte_data(dev_tmp, 0)
-		t_word = dev_pi.i2c_read_word_data(dev_tmp, 0)
-		t = tmp102_reading(t_byte, t_word)
+		t_word = dev_pi.i2c_read_word_data(dev_tmp, register_n)
+		t = tmp_sensors.tmp006_reading(t_word)
 		timestamp = datetime.datetime.now()
 		print(' Temperature: {} C   Loop # {:d}'.format(t,loopCount))
 		print(' Time: {} \n'.format(timestamp))
@@ -190,7 +189,8 @@ try:
 		time.sleep(delay_s)
 except KeyboardInterrupt:
 	pass
-
-dev_pi.i2c_close(dev_tmp)
+	
+print('Exiting the loop');
+r = dev_pi.i2c_close(dev_tmp)
 myAWSIoTMQTTClient.disconnect()
 print('Disconnected from AWS')
