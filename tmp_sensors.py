@@ -11,7 +11,7 @@ def tmp102_reading(word):
 	#byte with inedx 0 (first 8 bit):
 	byte0 = (word & 0b0000000011111111)
 	#last 4 bits of the word0
-	l4b = (word0 & 0b1111000000000000)>>12
+	l4b = (word & 0b1111000000000000)>>12
 	temperature = ((byte0<<4) | l4b) * 0.0625
 	return temperature
 	
